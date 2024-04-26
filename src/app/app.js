@@ -44,41 +44,68 @@ define(["require", "exports", "@syncfusion/ej2-schedule", "./datasource", "@sync
             }
         },
         popupOpen: function (args) {
-            var data = args.data;
-            if (isReadOnly(args.data) || args.target.classList.contains('lunch-break') || args.target.classList.contains('maintenance') || (args.target.classList.contains('e-read-only-cells')) || (!scheduleObj.isSlotAvailable(data.startTime, data.EndTime, data.groupIndex))) {
+            if (this.shouldCancelPopup(args)) {
                 args.cancel = true;
             }
         },
+        
+        shouldCancelPopup: function (args) {
+            var data = args.data;
+            return isReadOnly(data) || 
+                   args.target.classList.contains('lunch-break') || 
+                   args.target.classList.contains('maintenance') || 
+                   args.target.classList.contains('e-read-only-cells') || 
+                   !scheduleObj.isSlotAvailable(data.startTime, data.endTime, data.groupIndex);
+        },
+        
         renderCell: function (args) {
             if (args.element.classList.contains('e-work-cells')) {
-                ej2_base_1.addClass([args.element], ['jammy', 'tweety', 'rounded', 'scenic', 'mission'][parseInt(args.element.getAttribute('data-group-index'), 10)]);
-                if (args.date.getHours() == 13) {
-                    ej2_base_1.addClass([args.element], 'lunch-break');
-                }
-                if (((args.element.classList.contains('jammy') || args.element.classList.contains('rounded') || args.element.classList.contains('mission')) && (args.date.getHours() == 8 && args.date.getMinutes() == 0)) || ((args.element.classList.contains('tweety') || args.element.classList.contains('scenic')) && (args.date.getHours() == 14 && args.date.getMinutes() == 0)) || ((args.element.classList.contains('rounded') || args.element.classList.contains('mission')) && (args.date.getHours() == 17 && args.date.getMinutes() == 0))) {
-                    ej2_base_1.addClass([args.element], 'maintenance');
-                }
-                if (args.date < new Date(2018, 6, 31, 0, 0)) {
-                    args.element.setAttribute('aria-readonly', 'true');
-                    args.element.classList.add('e-read-only-cells');
-                }
+                this.applyGroupStyles(args);
+                this.checkForLunchBreak(args);
+                this.checkForMaintenance(args);
+                this.applyReadOnlyStatus(args);
             }
         },
-        eventRendered: function (args) {
-            if (isReadOnly(args.data)) {
+        
+        applyGroupStyles: function (args) {
+            const groupClasses = ['jammy', 'tweety', 'rounded', 'scenic', 'mission'];
+            const index = parseInt(args.element.getAttribute('data-group-index'), 10);
+            ej2_base_1.addClass([args.element], groupClasses[index]);
+        },
+        
+        checkForLunchBreak: function (args) {
+            if (args.date.getHours() === 13) {
+                ej2_base_1.addClass([args.element], 'lunch-break');
+            }
+        },
+        
+        checkForMaintenance: function (args) {
+            const classNames = args.element.classList;
+            const hour = args.date.getHours();
+            const minute = args.date.getMinutes();
+        
+            const isMaintenanceTime = (
+                (classNames.contains('jammy') || classNames.contains('rounded') || classNames.contains('mission')) && 
+                (hour === 8 && minute === 0)
+              ) ||
+              (
+                (classNames.contains('tweety') || classNames.contains('scenic')) && 
+                (hour === 14 && minute === 0)
+              ) ||
+              (
+                (classNames.contains('rounded') || classNames.contains('mission')) && 
+                (hour === 17 && minute === 0)
+              );
+        
+            if (isMaintenanceTime) {
+                ej2_base_1.addClass([args.element], 'maintenance');
+            }
+        },
+        
+        applyReadOnlyStatus: function (args) {
+            const readOnlyDate = new Date(2018, 6, 31, 0, 0);
+            if (args.date < readOnlyDate) {
                 args.element.setAttribute('aria-readonly', 'true');
-                args.element.classList.add('e-read-only');
+                args.element.classList.add('e-read-only-cells');
             }
         }
-    };
-    var scheduleObj = new ej2_schedule_1.Schedule(scheduleOptions, document.getElementById('Schedule'));
-    window.getRoomName = function (value) {
-        return value.resourceData[value.resource.textField];
-    };
-    window.getRoomCapacity = function (value) {
-        return value.resourceData.capacity;
-    };
-    window.getRoomType = function (value) {
-        return value.resourceData.type;
-    };
-});
